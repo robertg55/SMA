@@ -12,6 +12,3 @@ def test_strat(symbol, b, s, days):
     print(f"total profit {profit}, total transaction {transactionsnb}, total invested time hours {float(itime)/60/60}")
 
 
-if __name__ == "__main__":
-    test_strat("TQQQ", -7.7, 3.2, 30)
-

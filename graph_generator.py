@@ -24,13 +24,8 @@ def show_graph(dict_data):
 
 
 def gen_csv(dict_data):
-    #data1 = [{"buy":key.split("_")[0], "sell":key.split("_")[1], "profit": value} for key, value in dict_data.items()]
-    #print(data1)
     data = []
     for y in range(-100, 100):
-        #data3 = None
-        #for x in range(-100, 100):
-        #    data3.update({x/10:None})
         data.append(dict())
     for key, value in dict_data.items():
         b, s = key.split("_")
