@@ -59,7 +59,7 @@ def analyse_results(results, symbol, start_time):
             invested_time = itime
             rbm = rb
             rsm = rs
-    result_str = f'for {symbol} highest profit {highest_profit} at buy {highest_profit_b} and sell {highest_profit_s} with {transactions} transactions and {invested_time} invested time and elapsed time {time.time() - start_time} and range buy {rbm} and range sell {rsm}'
+    result_str = f'for {symbol} highest profit {highest_profit} when buying at {highest_profit_b} and selling at {highest_profit_s} with {transactions} transactions and invested time {invested_time} in seconds and elapsed time {time.time() - start_time} to calculate and range buy {rbm} and range sell {rsm}'
     print(result_str)
     with open(f'log.txt', 'a') as file:
         file.write(f"{result_str}\n")
@@ -70,8 +70,8 @@ def analyse_results(results, symbol, start_time):
             max_val = compiled[k]
             key_val = k
     print(f"max {max_val} buy {key_val.split('_')[0]} sell {key_val.split('_')[1]}")
-    gen_csv(compiled)
-    show_graph(compiled)
+    #gen_csv(compiled)
+    #show_graph(compiled)
 
 def run_strats_multiprocess(datapoints): 
     start_time = time.time()

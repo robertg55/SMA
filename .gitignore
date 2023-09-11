@@ -1,3 +1,4 @@
 /.project
 /log.txt
 /.pydevproject
+__pycache__/
