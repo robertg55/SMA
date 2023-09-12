@@ -21,25 +21,23 @@ def main():
     parser.add_argument("--sell", default=10, type=int, help="Sell max percent to test")
     parser.add_argument("--brange", default=4, type=int, help="Buy max percent range to test")
     parser.add_argument("--srange", default=4, type=int, help="Sell max percent range to test")
+    parser.add_argument("--skip-today", action='store_true', help="Skip todays info")
     parser.add_argument("--cpu", action='store_true', help="Use CPU instead of gpu")
     args = parser.parse_args()
 
     data_cache = DataFetcher()
+
     if args.src == "yfinance":
-        data_cache.poll_yfinance(args.symbol, args.days)
+        data_cache.poll_yfinance(args.symbol, args.days, args.skip_today)
     else:
         data_cache.poll_aws_data(args.symbol, args.start, args.end)
     
     if args.cpu:
-        datapoints = get_starmap_datapoints(data_cache, args.buy, args.sell, args.brange, args.srange)
+        results, start_time = run_strats_multiprocess(get_starmap_datapoints(data_cache, args.buy, args.sell, args.brange, args.srange))
     else:
-        datapoints = get_datapoints(args.buy, args.sell, args.brange, args.srange)
-
-    if args.cpu:
-        results, start_time = run_strats_multiprocess(datapoints)
-    else:
-        results, start_time = run_strats_gpu(datapoints, data_cache)
+        results, start_time = run_strats_gpu(get_datapoints(args.buy, args.sell, args.brange, args.srange), data_cache)
     analyse_results(results, args.symbol, start_time)
+
 
 def get_starmap_datapoints(data_cache, buy, sell, brange, srange):
     
@@ -62,18 +60,13 @@ def get_datapoints(buy, sell, brange, srange):
     print(f"number of datapoints: {len(array)}")
     return array
 
-def analyse_results(results, symbol, start_time, cpu=False):
+def analyse_results(results, symbol, start_time):
     compiled = {}
     highest_profit = -100000
     highest_profit_b = highest_profit_b = transactions = invested_time = rbm = rsm = 0
     
     for result in results:
-        if cpu:
-            buy, sell, profit, transactionsnb, itime, rb, rs= result.split("_")
-            profit=float(profit)
-
-        else:
-            buy, sell, rb, rs, profit, transactionsnb, itime = result.ravel()
+        buy, sell, rb, rs, profit, transactionsnb, itime = result.ravel()
 
         cumul = compiled.setdefault(f"{buy}_{sell}_{rb}_{rs}", 0) + profit
         compiled.update({f"{buy}_{sell}_{rb}_{rs}":cumul})
@@ -123,7 +116,7 @@ def run_single(cache, buy_on_diff_percent, sell_on_diff_percent, range_b, range_
     data = cache.data
     strat_runner = Runner(data, 100000)
     profit, transactions, total_time_invested = strat_runner.run_strat(buy_on_diff_percent-(range_b/2), buy_on_diff_percent+(range_b/2), sell_on_diff_percent-(range_s/2), sell_on_diff_percent+(range_s/2))
-    return f"{buy_on_diff_percent}_{sell_on_diff_percent}_{profit}_{transactions}_{total_time_invested}_{range_b}_{range_s}"  
+    return np.array([buy_on_diff_percent, sell_on_diff_percent, range_b, range_s, profit, transactions, total_time_invested])  
 
 
 if __name__ == "__main__":

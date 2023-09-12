@@ -7,13 +7,14 @@ class DataFetcher():
     def __init__(self):
         self.data = None
     
-    def poll_yfinance(self, symbol, days_to_poll):
+    def poll_yfinance(self, symbol, days_to_poll, skip_today=False):
         print("YFINANCE FETCH")
         old_date = datetime.now() - timedelta(days=days_to_poll)
-        month = [old_date + timedelta(idx + 1)for idx in range((datetime.now() - old_date).days)]
+        month = [old_date + timedelta(idx + 1)for idx in range(days_to_poll)]
         data = []
         for day in month:
-            data.extend(self.poll_yfinnance_day(symbol, start_time=day.strftime("%Y-%m-%d"), end_time=(day+ timedelta(1)).strftime("%Y-%m-%d")))
+            if not skip_today or day.strftime("%Y-%m-%d") != datetime.now().strftime("%Y-%m-%d"):
+                data.extend(self.poll_yfinnance_day(symbol, start_time=day.strftime("%Y-%m-%d"), end_time=(day+ timedelta(1)).strftime("%Y-%m-%d")))
         self.data = data
     
     def poll_yfinnance_day(self, symbol, start_time=None, end_time=None):
