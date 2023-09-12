@@ -27,16 +27,13 @@ def main():
 
     data_cache = DataFetcher()
 
-    if args.src == "yfinance":
-        data_cache.poll_yfinance(args.symbol, args.days, args.skip_today)
-    else:
-        data_cache.poll_aws_data(args.symbol, args.start, args.end)
+    days = data_cache.poll_data(args.src, args.symbol, args.start, args.end, args.days, args.skip_today)
     
     if args.cpu:
         results, start_time = run_strats_multiprocess(get_starmap_datapoints(data_cache, args.buy, args.sell, args.brange, args.srange))
     else:
         results, start_time = run_strats_gpu(get_datapoints(args.buy, args.sell, args.brange, args.srange), data_cache)
-    analyse_results(results, args.symbol, start_time)
+    analyse_results(results, args.symbol, start_time, days, args.src)
 
 
 def get_starmap_datapoints(data_cache, buy, sell, brange, srange):
@@ -60,7 +57,7 @@ def get_datapoints(buy, sell, brange, srange):
     print(f"number of datapoints: {len(array)}")
     return array
 
-def analyse_results(results, symbol, start_time):
+def analyse_results(results, symbol, start_time, computed_days, data_source):
     compiled = {}
     highest_profit = -100000
     highest_profit_b = highest_profit_b = transactions = invested_time = rbm = rsm = 0
@@ -79,10 +76,10 @@ def analyse_results(results, symbol, start_time):
             invested_time = itime
             rbm = rb
             rsm = rs
-    result_str = f'for {symbol} highest profit {highest_profit} when buying at {highest_profit_b} and selling at {highest_profit_s} with {transactions} transactions and invested time {invested_time} in seconds and elapsed time {time.time() - start_time} to calculate and range buy {rbm} and range sell {rsm}'
-    print(result_str)
+    print(f'for {symbol} highest profit {highest_profit} when buying at {highest_profit_b} and selling at {highest_profit_s} with {transactions} transactions and invested time {invested_time} in seconds and elapsed time {time.time() - start_time} to calculate and range buy {rbm} and range sell {rsm}')
     with open(f'log.txt', 'a') as file:
-        file.write(f"{result_str}\n")
+        info = {"symbol":symbol, "profit":highest_profit, "buy":highest_profit_b, "sell":highest_profit_s, "transactions":transactions, "invsted_time":invested_time, "elapsed_time": time.time() - start_time, "range_buy": rbm, "range_sell": rbm, "days": [d.strftime("%Y-%m-%d") for d in computed_days], "data_source":data_source}
+        file.write(f"{info}\n")
     max_val = 0
     key_val=""
     for k in compiled.keys():
