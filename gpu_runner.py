@@ -2,15 +2,15 @@ from numba import cuda
 
 
 @cuda.jit
-def run_strat(datapoints, data):
+def run_strat(strategies, data):
     thread_position = cuda.grid(1)
     # current_data = data[thread_position]
 
     # print(current_data)
-    buy_on_diff_percent = datapoints[thread_position][0]
-    sell_on_diff_percent = datapoints[thread_position][1]
-    range_b = datapoints[thread_position][2]
-    range_s = datapoints[thread_position][3]
+    buy_on_diff_percent = strategies[thread_position][0]
+    sell_on_diff_percent = strategies[thread_position][1]
+    range_b = strategies[thread_position][2]
+    range_s = strategies[thread_position][3]
 
     buy_on_diff_percent_min = buy_on_diff_percent - (range_b / 2)
     buy_on_diff_percent_max = buy_on_diff_percent + (range_b / 2)
@@ -19,7 +19,6 @@ def run_strat(datapoints, data):
     start_money = 100000
     avail_money = start_money
     current_stocks = 0
-    profit_percent = None
     transactions = 0
     last_buy_time = 0
     total_time_invested = 0
@@ -83,6 +82,6 @@ def run_strat(datapoints, data):
 
     profit = avail_money - start_money
 
-    datapoints[thread_position][4] = profit
-    datapoints[thread_position][5] = transactions
-    datapoints[thread_position][6] = total_time_invested
+    strategies[thread_position][4] = profit
+    strategies[thread_position][5] = transactions
+    strategies[thread_position][6] = total_time_invested

@@ -21,17 +21,17 @@ def main():
         "--src", default="aws", help="Data source", choices={"yfinance", "aws"}
     )
     parser.add_argument(
-        "--days", default=20, type=int, help="Number of days to compute"
+        "--days", default=3, type=int, help="Number of days to compute"
     )
     parser.add_argument("--start", default=9.5, type=float, help="Start of day time")
     parser.add_argument("--end", default=16, type=float, help="End of day time")
     parser.add_argument("--buy", default=10, type=int, help="Buy max percent to test")
     parser.add_argument("--sell", default=10, type=int, help="Sell max percent to test")
     parser.add_argument(
-        "--brange", default=0, type=int, help="Buy max percent range to test"
+        "--brange", default=1, type=int, help="Buy max percent range to test"
     )
     parser.add_argument(
-        "--srange", default=0, type=int, help="Sell max percent range to test"
+        "--srange", default=1, type=int, help="Sell max percent range to test"
     )
     parser.add_argument(
         "--include-partial-today", action="store_true", help="Skip todays info"
@@ -49,34 +49,36 @@ def main():
         args.days,
         args.include_partial_today,
     )
+    print(f"number of data points {len(data_cache.data)}")
     if args.cpu:
-        datapoints = get_starmap_datapoints(
+        strategies = get_starmap_strategies(
             data_cache, args.buy, args.sell, args.brange, args.srange
         )
         memory = get_memory_usage()
-        results, start_time = run_strats_multiprocess(datapoints)
+        results, start_time = run_strats_multiprocess(strategies)
     else:
-        datapoints = get_datapoints(args.buy, args.sell, args.brange, args.srange)
+        strategies = get_strategies(args.buy, args.sell, args.brange, args.srange)
         memory = get_memory_usage()
-        results, start_time = run_strats_gpu(datapoints, data_cache)
+        results, start_time = run_strats_gpu(strategies, data_cache)
     analyse_results(results, args.symbol, start_time, days, args.src, memory)
+    print("Done")
 
 
-def get_starmap_datapoints(data_cache, buy, sell, brange, srange):
-    print("generating starmap datapoints")
-    datapoints = [
+def get_starmap_strategies(data_cache, buy, sell, brange, srange):
+    print("generating starmap strategies")
+    strategies = [
         (data_cache, b / 10, -(s / 10), br / 10, sr / 10)
         for b in range(buy * (-10), buy * 10 + 1)
         for s in range(sell * (-10), sell * 10 + 1)
         for br in range(0, brange * 10 + 1)
         for sr in range(0, srange * 10 + 1)
     ]
-    print(f"number of datapoints: {len(datapoints)}")
-    return datapoints
+    print(f"number of strategies: {len(strategies)}")
+    return strategies
 
 
-def get_datapoints(buy, sell, brange, srange):
-    print("generating datapoints")
+def get_strategies(buy, sell, brange, srange):
+    print("generating strategies")
 
     def get_index(buy, sell, brange, srange):
         return (20 * buy + 1) * (20 * sell + 1) * (brange * 10 + 1) * (srange * 10 + 1)
@@ -89,7 +91,7 @@ def get_datapoints(buy, sell, brange, srange):
                 for sr in range(0, srange * 10 + 1):
                     array[i] = np.array([b / 10, -(s / 10), br / 10, sr / 10, 0, 0, 0])
                     i = i + 1
-    print(f"number of datapoints: {len(array)}")
+    print(f"number of strategies: {len(array)}")
     return array
 
 
@@ -104,12 +106,14 @@ def persist_results(
     rbm,
     rsm,
     memory,
-    max_val,
-    key_val,
     computed_days,
     data_source,
+    max_buy,
+    min_buy,
+    max_sell,
+    min_sell
 ):
-    info_str = f"for {symbol} highest profit {highest_profit} when buying at {highest_profit_b} and selling at {highest_profit_s} with {transactions} transactions and invested time {invested_time} in seconds and elapsed time {time.time() - start_time} to calculate and range buy {rbm} and range sell {rsm} with memory {memory}. Multiple day cumulative profit: max {max_val} for buy at {key_val.split('_')[0]} and sell at {key_val.split('_')[1]} with rangeB {key_val.split('_')[2]} and rangeS {key_val.split('_')[3]} with {len(computed_days)} number of days"
+    info_str = f"for {symbol} highest profit {highest_profit} when buying at {highest_profit_b} and selling at {highest_profit_s} with {transactions} transactions and invested time {invested_time} in seconds and elapsed time {time.time() - start_time} to calculate and range buy {rbm} and range sell {rsm} with memory {memory} and number of days {len(computed_days)} and max_buy {max_buy}, min_buy {min_buy}, max_sell {max_sell}, min_sell {min_sell}"
     print(info_str)
     info = {
         "info": info_str,
@@ -126,19 +130,19 @@ def persist_results(
         "days": [d.strftime("%Y-%m-%d") for d in computed_days],
         "data_source": data_source,
         "memory": memory,
-        "multiday_profit": max_val,
-        "multiday_buy": key_val.split("_")[0],
-        "multiday_sell": key_val.split("_")[1],
-        "multiday_rangeB": key_val.split("_")[2],
-        "multiday_rangeS": key_val.split("_")[3],
+        "max_buy":max_buy,
+        "min_buy":min_buy,
+        "max_sell":max_sell,
+        "min_sell":min_sell,
     }
     for key, val in info.items():
         if isinstance(val, int) or isinstance(val, float):
-            info[key] = Decimal(val)
+            info[key] = Decimal(str(val))
     with open(f"log.txt", "a") as file:
         file.write(f"{info_str}\n")
     dyn_resource = boto3.resource("dynamodb")
     table = dyn_resource.Table("Results")
+    print(info)
     table.put_item(Item=info)
 
 
@@ -166,13 +170,27 @@ def analyse_results(results, symbol, start_time, computed_days, data_source, mem
             invested_time = itime
             rbm = rb
             rsm = rs
-
-    max_val = 0
-    key_val = "0_0_0_0"
+    
+    max_buy=-100
+    min_buy=100
+    max_sell=-100
+    min_sell=100
     for k in compiled.keys():
-        if compiled[k] > max_val:
-            max_val = compiled[k]
-            key_val = k
+        if highest_profit == compiled[k]:
+            
+            b = float(k.split('_')[0])
+            s = float(k.split('_')[1])
+            br = float(k.split('_')[2])
+            sr = float(k.split('_')[3])
+            if min_buy < (b-br):
+                min_buy = b-br
+            if min_sell < (s-sr):
+                min_sell = s-sr
+            if max_buy > (b+br):
+                max_buy = b+br
+            if max_sell > (s+sr):
+                max_buy = s+sr
+                
     persist_results(
         symbol,
         highest_profit,
@@ -184,33 +202,35 @@ def analyse_results(results, symbol, start_time, computed_days, data_source, mem
         rbm,
         rsm,
         memory,
-        max_val,
-        key_val,
         computed_days,
         data_source,
+        max_buy,
+        min_buy,
+        max_sell,
+        min_sell
     )
     # gen_csv(compiled)
     # show_graph(compiled)
 
 
-def run_strats_gpu(datapoints, data_cache):
+def run_strats_gpu(strategies, data_cache):
     print("running on gpu")
     start_time = time.time()
     data = data_cache.data
     threadsperblock = 1024
-    blockspergrid = math.ceil(datapoints.shape[0] / threadsperblock)
+    blockspergrid = math.ceil(strategies.shape[0] / threadsperblock)
 
     np_data = np.array(data)
-    run_strat[blockspergrid, threadsperblock](datapoints, np_data)
+    run_strat[blockspergrid, threadsperblock](strategies, np_data)
 
-    return datapoints, start_time
+    return strategies, start_time
 
 
-def run_strats_multiprocess(datapoints):
+def run_strats_multiprocess(strategies):
     print("running on cpu")
     start_time = time.time()
     p = mp.Pool()
-    results = p.starmap(run_single, tqdm.tqdm(datapoints, total=len(datapoints)))
+    results = p.starmap(run_single, tqdm.tqdm(strategies, total=len(strategies)))
     p.close()
     return results, start_time
 
