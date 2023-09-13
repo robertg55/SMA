@@ -7,11 +7,13 @@ class DataFetcher():
     def __init__(self):
         self.data = None
     
-    def poll_data(self, source, symbol, start, end, days, skip_today):
+    def poll_data(self, source, symbol, start_hour, end_hour, days, include_partial_today):  
+        current_hour = datetime.now().hour
+        skip_today = True if not include_partial_today and current_hour >= start_hour and current_hour < end_hour else False
         if source== "yfinance":
             return self.poll_yfinance(symbol, days, skip_today)
         else:
-            return self.poll_aws_data(symbol, start, end, days, skip_today)
+            return self.poll_aws_data(symbol, start_hour, end_hour, days, skip_today)
     
     def poll_yfinance(self, symbol, days_to_poll, skip_today=False):
         print("Fetching yfinance")
