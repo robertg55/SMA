@@ -33,7 +33,6 @@ class Runner:
         sell_on_diff_percent_min,
         sell_on_diff_percent_max,
         delay_milis=5000,
-        variable=None,
     ):
         previous_price = None
         set_buy = None

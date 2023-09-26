@@ -6,10 +6,14 @@ from datetime import datetime, timedelta
 class DataFetcher:
     def __init__(self):
         self.data = None
+        self.actual_days = None
+        self.requested_days = None
 
     def poll_data(
-        self, source, symbol, start_hour, end_hour, days, include_partial_today
+        self, source, symbol, start_hour, end_hour, days, include_partial_today, overwrite=False, tdelta=0
     ):
+        if self.data is not None and not overwrite:
+            return
         current_hour = datetime.now().hour
         skip_today = (
             True
@@ -19,24 +23,22 @@ class DataFetcher:
             else False
         )
         if source == "yfinance":
-            return self.poll_yfinance(symbol, days, skip_today)
+            self.poll_yfinance(symbol, days, skip_today, tdelta)
         else:
-            return self.poll_aws_data(symbol, start_hour, end_hour, days, skip_today)
+            self.poll_aws_data(symbol, start_hour, end_hour, days, skip_today, tdelta)
 
-    def poll_yfinance(self, symbol, days_to_poll, skip_today=False):
+    def poll_yfinance(self, symbol, days_to_poll, skip_today=False, tdelta=0):
         print("Fetching yfinance")
-        days = self.get_days_to_compute(days_to_poll, skip_today)
+        days = self.get_days_to_compute(days_to_poll, skip_today, tdelta)
+        actual_days = []
         data = []
         for day in days:
-            data.extend(
-                self.poll_yfinnance_day(
-                    symbol,
-                    start_time=day.strftime("%Y-%m-%d"),
-                    end_time=(day + timedelta(1)).strftime("%Y-%m-%d"),
-                )
-            )
+            day_data = self.poll_yfinnance_day(symbol,start_time=day.strftime("%Y-%m-%d"),end_time=(day + timedelta(1)).strftime("%Y-%m-%d"))
+            if day_data:
+                data.extend(day_data)
+                actual_days.append(day.strftime("%Y-%m-%d"))
         self.data = data
-        return days
+        self.actual_days = actual_days
 
     def poll_yfinnance_day(self, symbol, start_time=None, end_time=None):
         import yfinance as yf
@@ -51,22 +53,30 @@ class DataFetcher:
         return data
 
     def poll_aws_data(
-        self, symbol, start_time=9.5, end_time=16, days_to_poll=1, skip_today=False
+        self, symbol, start_time=9.5, end_time=16, days_to_poll=1, skip_today=False, tdelta=0
     ):
         print("Fetching aws")
-        days = self.get_days_to_compute(days_to_poll, skip_today)
+        days = self.get_days_to_compute(days_to_poll, skip_today, tdelta)
         df = self.query_data(symbol, start_time, end_time, days)
         data = []
         for _, row in df.iterrows():
             data.append((row["time"], row["price"]))
         self.data = data
-        return days
+        self.actual_days = self.compute_actual_days(df)
 
     def query_data(self, table, start_time=8, end_time=17, days=[]):
         dyn_resource = boto3.resource("dynamodb")
         table = dyn_resource.Table(table)
+        
         response = table.scan()
-        items = response["Items"]
+        items = response['Items']
+        page=0
+        while 'LastEvaluatedKey' in response:
+            page = page + 1
+            print(f"polling dynamedb page {page}")
+            response = table.scan(ExclusiveStartKey=response['LastEvaluatedKey'])
+            items.extend(response['Items'])
+
         df = pd.DataFrame(items)
         df = df.astype(float)
         df = self.filter_open_only(df, start_time, end_time)
@@ -74,6 +84,11 @@ class DataFetcher:
         df = df.rename(columns={"writetime": "time"})
         df = df.sort_values("time")
         return df
+
+    def compute_actual_days(self, df):
+        df["datetime-str"] = df["datetime"].dt.strftime("%Y-%m-%d")
+        return df["datetime-str"].unique().tolist()
+
 
     def filter_specific_days(self, df, days):
         df["datetime-str"] = df["datetime"].dt.strftime("%Y-%m-%d")
@@ -94,12 +109,9 @@ class DataFetcher:
         df = df.drop(df[df["hour"] < start_hour].index)
         return df
 
-    def get_days_to_compute(self, days_to_poll, skip_today):
-        old_date = datetime.now() - timedelta(days=days_to_poll)
+    def get_days_to_compute(self, days_to_poll, skip_today, tdelta):
+        now = datetime.now() - timedelta(days=tdelta)
+        old_date = now - timedelta(days=days_to_poll)
         month = [old_date + timedelta(idx + 1) for idx in range(days_to_poll)]
-        return [
-            day
-            for day in month
-            if not skip_today
-            or day.strftime("%Y-%m-%d") != datetime.now().strftime("%Y-%m-%d")
-        ]
+        self.requested_days = [day for day in month if not skip_today or day.strftime("%Y-%m-%d") != datetime.now().strftime("%Y-%m-%d")]
+        return self.requested_days
