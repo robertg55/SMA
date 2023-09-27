@@ -24,21 +24,21 @@ def main():
     )
     parser.add_argument("--start", default=9.5, type=float, help="Start of day time")
     parser.add_argument("--end", default=16, type=float, help="End of day time")
-    parser.add_argument("--buy", default=-5, type=float, help="Buy max percent to test")
-    parser.add_argument("--sell", default=-4.9, type=float, help="Sell max percent to test")
+    parser.add_argument("--buy", default=10, type=float, help="Buy max percent to test")
+    parser.add_argument("--sell", default=10, type=float, help="Sell max percent to test")
     parser.add_argument(
-        "--brange", default=2.8, type=float, help="Buy max percent range to test"
+        "--brange", default=5, type=float, help="Buy max percent range to test"
     )
     parser.add_argument(
-        "--srange", default=5.2, type=float, help="Sell max percent range to test"
+        "--srange", default=5, type=float, help="Sell max percent range to test"
     )
     parser.add_argument(
-        "--include-partial-today", action="store_true", help="Skip todays info"
+        "--include-partial-today", action="store_true", help="By default it skip todays info"
     )
     parser.add_argument("--cpu", action="store_true", help="Use CPU instead of gpu")
     parser.add_argument("--single-strat", action="store_true", help="Run single strat instead of all possibilities")
     parser.add_argument(
-        "--tdelta", default=2, type=int, help="Number of days in the past from which to start pulling data"
+        "--tdelta", default=0, type=int, help="Number of days in the past from which to start pulling data"
     )
     args = parser.parse_args()
     data_cache = DataFetcher()
