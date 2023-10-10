@@ -4,9 +4,6 @@ from numba import cuda
 @cuda.jit
 def run_strat(strategies, data):
     thread_position = cuda.grid(1)
-    # current_data = data[thread_position]
-
-    # print(current_data)
     buy_on_diff_percent = strategies[thread_position][0]
     sell_on_diff_percent = strategies[thread_position][1]
     range_b = strategies[thread_position][2]

@@ -30,7 +30,7 @@ def main():
     )
     args = parser.parse_args()
     data_cache = DataFetcher()
-    run(data_cache, args.src, args.symbol, args.start, args.end, args.days, args.include_partial_today, args.cpu, args.buy, args.sell, args.brange, args.srange, True, args.tdelta)
+    run(data_cache, args.src, args.symbol, args.start, args.end, args.days, args.include_partial_today, True, args.buy, args.sell, args.brange, args.srange, True, args.tdelta)
     
 if __name__ == "__main__":
     main()
