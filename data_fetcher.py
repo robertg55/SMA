@@ -1,13 +1,13 @@
 import boto3
 import pandas as pd
 from datetime import datetime, timedelta
-
+import pickle
 
 class DataFetcher:
-    def __init__(self):
-        self.data = None
-        self.actual_days = None
-        self.requested_days = None
+    def __init__(self, data=None, actual_days=None, requested_days=None):
+        self.data = data
+        self.actual_days = actual_days
+        self.requested_days = requested_days
 
     def poll_data(
         self, source, symbol, start_hour, end_hour, days, include_partial_today, overwrite=False, tdelta=0
@@ -26,6 +26,9 @@ class DataFetcher:
             self.poll_yfinance(symbol, days, skip_today, tdelta)
         else:
             self.poll_aws_data(symbol, start_hour, end_hour, days, skip_today, tdelta)
+            
+            with open('config.dictionary', 'wb') as write_file:
+                pickle.dump(self.data, write_file)
 
     def poll_yfinance(self, symbol, days_to_poll, skip_today=False, tdelta=0):
         print("Fetching yfinance")

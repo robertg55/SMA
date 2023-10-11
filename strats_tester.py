@@ -24,7 +24,6 @@ def main():
     parser.add_argument(
         "--include-partial-today", action="store_true", help="By default it skip todays info"
     )
-    parser.add_argument("--cpu", action="store_true", help="Use CPU instead of gpu")
     parser.add_argument(
         "--tdelta", default=0, type=int, help="Number of days in the past from which to start pulling data"
     )
