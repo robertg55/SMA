@@ -41,30 +41,33 @@ def run_simulation(data_cache, src, symbol, days_group, start, end, include_part
         include_partial_today,
     )
     single_days = group_by_day(data_cache)
-    print(f"{single_days.keys()}")
-    oldest_day = datetime.strptime(sorted(list(single_days.keys()))[0], '%Y-%m-%d')
-    evaluating_day=oldest_day+timedelta(days=days_group)
-    end_day = datetime.today()
+    days_arr = sorted(list(single_days.keys()))
+    print(f"{days_arr}")
+    index = days_group
+    evaluating_day=days_arr[index]
     print("simulation start")
     strategies = get_strategies(buy, sell, brange, srange, False)
-    while(evaluating_day.date()!=end_day.date()):
-        if str(evaluating_day.date()) in list(single_days.keys()):
+    while(index < len(days_arr)):
+        evaluating_day = days_arr[index]
+        if evaluating_day in list(single_days.keys()):
             grouped_list = []
             for day in range(days_group):
-                grouped_list.extend(single_days.get(str(evaluating_day.date()-timedelta(days=(1+day))), []))
-            if grouped_list:
-                grouped_data_cache = DataFetcher(grouped_list, days_group, days_group)
-                _, max_buy, min_buy, max_sell, min_sell = run(grouped_data_cache, src, symbol, start, end, days_group, False, False, buy, sell, brange, srange, False, 0, True, strategies)
-                b = (max_buy + min_buy)/2
-                s = (max_sell + min_sell)/2
-                br = max_buy-min_buy
-                sr = max_sell-min_sell
-                single_data_cache = DataFetcher(single_days.get(str(evaluating_day.date())), 1, 1)
-                eval_highest_profit, _, _, _, _ = run(single_data_cache, src, symbol, start, end, 1, include_partial_today, True, b, s, br, sr, True, 0, True)
-                print(f"simulation {eval_highest_profit} with buy {b}, sell {s}, brange {br}, srange {sr}")
-            else:
-                print(f"grouped_list empty for {evaluating_day}")
-        evaluating_day = evaluating_day+timedelta(days=1)
+                grouped_list.extend(single_days.get(days_arr[index-1-day]))
+
+            grouped_data_cache = DataFetcher(grouped_list, days_group, days_group)
+            _, max_buy, min_buy, max_sell, min_sell = run(grouped_data_cache, src, symbol, start, end, days_group, False, False, buy, sell, brange, srange, False, 0, True, strategies)
+            b = (max_buy + min_buy)/2
+            s = (max_sell + min_sell)/2
+            br = max_buy-min_buy
+            sr = max_sell-min_sell
+            single_data_cache = DataFetcher(single_days.get(evaluating_day), 1, 1)
+            eval_highest_profit, _, _, _, _ = run(single_data_cache, src, symbol, start, end, 1, include_partial_today, True, b, s, br, sr, True, 0, True)
+            info_str = f"simulation {eval_highest_profit} with buy {b}, sell {s}, brange {br}, srange {sr}"
+            print(info_str)
+            with open(f"log.txt", "a") as file:
+                file.write(f"{info_str}\n")
+        
+        index = index + 1
     print("simulation done")
 
 def group_by_day(data_cache):

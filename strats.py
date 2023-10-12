@@ -30,10 +30,10 @@ def main():
     parser.add_argument("--buy", default=10, type=float, help="Buy max percent to test")
     parser.add_argument("--sell", default=10, type=float, help="Sell max percent to test")
     parser.add_argument(
-        "--brange", default=1, type=float, help="Buy max percent range to test"
+        "--brange", default=5, type=float, help="Buy max percent range to test"
     )
     parser.add_argument(
-        "--srange", default=1, type=float, help="Sell max percent range to test"
+        "--srange", default=5, type=float, help="Sell max percent range to test"
     )
     parser.add_argument(
         "--include-partial-today", action="store_true", help="By default it skip todays info"

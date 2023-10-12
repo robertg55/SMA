@@ -2,6 +2,7 @@ import boto3
 import pandas as pd
 from datetime import datetime, timedelta
 import pickle
+import os
 
 class DataFetcher:
     def __init__(self, data=None, actual_days=None, requested_days=None):
@@ -9,11 +10,15 @@ class DataFetcher:
         self.actual_days = actual_days
         self.requested_days = requested_days
 
-    def poll_data(
-        self, source, symbol, start_hour, end_hour, days, include_partial_today, overwrite=False, tdelta=0
-    ):
-        if self.data is not None and not overwrite:
-            return
+    def get_file_name(self, source, symbol, start_hour, end_hour, days, skip_today, tdelta):
+        
+        days_arr = self.get_days_to_compute(days, skip_today, tdelta)
+        start=str(days_arr[0].date())
+        end=str(days_arr[-1].date())
+
+        return os.path.join("cache", f"{source}-{symbol}-{start}-{end}-{start_hour}-{end_hour}")
+
+    def get_skip_today_value(self, include_partial_today, start_hour, end_hour):
         current_hour = datetime.now().hour
         skip_today = (
             True
@@ -22,12 +27,25 @@ class DataFetcher:
             and current_hour < end_hour
             else False
         )
-        if source == "yfinance":
-            self.poll_yfinance(symbol, days, skip_today, tdelta)
+        return skip_today
+
+    def poll_data(
+        self, source, symbol, start_hour, end_hour, days, include_partial_today, overwrite=False, tdelta=0
+    ):
+        if self.data is not None and not overwrite:
+            return
+        skip_today = self.get_skip_today_value(include_partial_today, start_hour, end_hour)
+        file_name = self.get_file_name(source, symbol, start_hour, end_hour, days, skip_today, tdelta)
+        if os.path.isfile(file_name):
+            with open(file_name, 'rb') as read_file:
+                self.data = pickle.load(read_file)
         else:
-            self.poll_aws_data(symbol, start_hour, end_hour, days, skip_today, tdelta)
-            
-            with open('config.dictionary', 'wb') as write_file:
+            if source == "yfinance":
+                self.poll_yfinance(symbol, days, skip_today, tdelta)
+            else:
+                self.poll_aws_data(symbol, start_hour, end_hour, days, skip_today, tdelta)
+                
+            with open(file_name, 'wb') as write_file:
                 pickle.dump(self.data, write_file)
 
     def poll_yfinance(self, symbol, days_to_poll, skip_today=False, tdelta=0):
