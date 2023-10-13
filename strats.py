@@ -50,7 +50,7 @@ def main():
     data_cache = DataFetcher()
     run(data_cache, args.src, args.symbol, args.start, args.end, args.days, args.include_partial_today, args.cpu, args.buy, args.sell, args.brange, args.srange, args.single_strat, args.tdelta, args.agg)
 
-def run(data_cache, src, symbol, start, end, days, include_partial_today, cpu, buy, sell, brange, srange, single_strat, tdelta, set_siltent_log=False, pregenerated_strategies=None, agg):
+def run(data_cache, src, symbol, start, end, days, include_partial_today, cpu, buy, sell, brange, srange, single_strat, tdelta, set_siltent_log=False, pregenerated_strategies=None, agg=0):
     this.siltent_log = set_siltent_log
     data_cache.poll_data(
         src,
@@ -237,7 +237,7 @@ def analyse_results(results, symbol, start_time, requested_days, data_source, me
                 max_buy = b+br
             if max_sell < (s+sr):
                 max_sell = s+sr
-    
+    # TODO TEST RETURN AVERAGE INSTEAD OF MAX
 
     persist_results(
         symbol,
