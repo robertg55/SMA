@@ -9,10 +9,10 @@ def run_strat(strategies, data):
     range_b = strategies[thread_position][2]
     range_s = strategies[thread_position][3]
 
-    buy_on_diff_percent_min = buy_on_diff_percent - (range_b / 2)
-    buy_on_diff_percent_max = buy_on_diff_percent + (range_b / 2)
-    sell_on_diff_percent_min = sell_on_diff_percent - (range_s / 2)
-    sell_on_diff_percent_max = sell_on_diff_percent + (range_s / 2)
+    buy_on_diff_percent_min = buy_on_diff_percent - (range_b)
+    buy_on_diff_percent_max = buy_on_diff_percent + (range_b)
+    sell_on_diff_percent_min = sell_on_diff_percent - (range_s)
+    sell_on_diff_percent_max = sell_on_diff_percent + (range_s)
     aggregate = strategies[thread_position][4]
     start_money = 100000
     avail_money = start_money

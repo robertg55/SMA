@@ -297,10 +297,10 @@ def run_single(
     data = cache.data
     strat_runner = Runner(data, 100000)
     profit, transactions, total_time_invested = strat_runner.run_strat(
-        buy_on_diff_percent - (range_b / 2),
-        buy_on_diff_percent + (range_b / 2),
-        sell_on_diff_percent - (range_s / 2),
-        sell_on_diff_percent + (range_s / 2),
+        buy_on_diff_percent - (range_b),
+        buy_on_diff_percent + (range_b),
+        sell_on_diff_percent - (range_s),
+        sell_on_diff_percent + (range_s),
         agg
     )
     return np.array(
