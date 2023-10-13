@@ -10,7 +10,7 @@ def main():
         "--src", default="aws", help="Data source", choices={"yfinance", "aws"}
     )
     parser.add_argument(
-        "--days-group", default=7, type=int, help="Number of days to group on simulation"
+        "--days-group", default=5, type=int, help="Number of days to group on simulation"
     )
     parser.add_argument("--start", default=9.5, type=float, help="Start of day time")
     parser.add_argument("--end", default=16, type=float, help="End of day time")
