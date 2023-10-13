@@ -25,13 +25,16 @@ def main():
     parser.add_argument(
         "--srange", default=5, type=float, help="Sell max percent range to test"
     )
+    parser.add_argument(
+        "--agg", default=60, type=int, help="Number of seconds to aggregate"
+    )
     args = parser.parse_args()
     
     data_cache = DataFetcher()
-    run_simulation(data_cache, args.src, args.symbol, args.days_group, args.start, args.end, args.include_partial_today, args.buy, args.sell, args.brange, args.srange)
+    run_simulation(data_cache, args.src, args.symbol, args.days_group, args.start, args.end, args.include_partial_today, args.buy, args.sell, args.brange, args.srange, args.agg)
     
     
-def run_simulation(data_cache, src, symbol, days_group, start, end, include_partial_today, buy, sell, brange, srange):
+def run_simulation(data_cache, src, symbol, days_group, start, end, include_partial_today, buy, sell, brange, srange, agg):
     data_cache.poll_data(
         src,
         symbol,
@@ -55,13 +58,13 @@ def run_simulation(data_cache, src, symbol, days_group, start, end, include_part
                 grouped_list.extend(single_days.get(days_arr[index-1-day]))
 
             grouped_data_cache = DataFetcher(grouped_list, days_group, days_group)
-            _, max_buy, min_buy, max_sell, min_sell = run(grouped_data_cache, src, symbol, start, end, days_group, False, False, buy, sell, brange, srange, False, 0, True, strategies)
+            _, max_buy, min_buy, max_sell, min_sell = run(grouped_data_cache, src, symbol, start, end, days_group, False, False, buy, sell, brange, srange, False, 0, True, strategies, agg)
             b = (max_buy + min_buy)/2
             s = (max_sell + min_sell)/2
             br = max_buy-min_buy
             sr = max_sell-min_sell
             single_data_cache = DataFetcher(single_days.get(evaluating_day), 1, 1)
-            eval_highest_profit, _, _, _, _ = run(single_data_cache, src, symbol, start, end, 1, include_partial_today, True, b, s, br, sr, True, 0, True)
+            eval_highest_profit, _, _, _, _ = run(single_data_cache, src, symbol, start, end, 1, include_partial_today, True, b, s, br, sr, True, 0, True, None, agg)
             info_str = f"simulation {eval_highest_profit} with buy {b}, sell {s}, brange {br}, srange {sr}"
             print(info_str)
             with open(f"log.txt", "a") as file:

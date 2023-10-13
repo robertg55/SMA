@@ -32,12 +32,14 @@ class Runner:
         buy_on_diff_percent_max,
         sell_on_diff_percent_min,
         sell_on_diff_percent_max,
+        agg,
         delay_milis=5000,
     ):
         previous_price = None
         set_buy = None
         set_sell = None
         transaction_time = None
+        aggregate = agg
         for item in self.data:
             price = previous_price
             time = item[0]

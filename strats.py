@@ -43,11 +43,14 @@ def main():
     parser.add_argument(
         "--tdelta", default=0, type=int, help="Number of days in the past from which to start pulling data"
     )
+    parser.add_argument(
+        "--agg", default=60, type=int, help="Number of seconds to aggregate"
+    )
     args = parser.parse_args()
     data_cache = DataFetcher()
-    run(data_cache, args.src, args.symbol, args.start, args.end, args.days, args.include_partial_today, args.cpu, args.buy, args.sell, args.brange, args.srange, args.single_strat, args.tdelta)
+    run(data_cache, args.src, args.symbol, args.start, args.end, args.days, args.include_partial_today, args.cpu, args.buy, args.sell, args.brange, args.srange, args.single_strat, args.tdelta, args.agg)
 
-def run(data_cache, src, symbol, start, end, days, include_partial_today, cpu, buy, sell, brange, srange, single_strat, tdelta, set_siltent_log=False, pregenerated_strategies=None):
+def run(data_cache, src, symbol, start, end, days, include_partial_today, cpu, buy, sell, brange, srange, single_strat, tdelta, set_siltent_log=False, pregenerated_strategies=None, agg):
     this.siltent_log = set_siltent_log
     data_cache.poll_data(
         src,
@@ -60,9 +63,10 @@ def run(data_cache, src, symbol, start, end, days, include_partial_today, cpu, b
     )
     log(f"number of data points: {len(data_cache.data)}")
     memory = get_memory_usage()
+    agg = int(agg)
     if cpu:
         strategies = get_starmap_strategies(
-            data_cache, buy, sell, brange, srange, single_strat
+            data_cache, buy, sell, brange, srange, single_strat, agg
         )
         memory = get_memory_usage()
         results, start_time = run_strats_multiprocess(strategies)
@@ -70,20 +74,20 @@ def run(data_cache, src, symbol, start, end, days, include_partial_today, cpu, b
         if pregenerated_strategies is not None:
             strategies=pregenerated_strategies
         else:
-            strategies = get_strategies(buy, sell, brange, srange, single_strat)
+            strategies = get_strategies(buy, sell, brange, srange, single_strat, agg)
             memory = get_memory_usage()
         results, start_time = run_strats_gpu(strategies, data_cache)
-    analysed = analyse_results(results=results, symbol=symbol, start_time=start_time, requested_days=data_cache.requested_days, data_source=src, memory=memory, actual_days=data_cache.actual_days, single_strat=single_strat)
+    analysed = analyse_results(results=results, symbol=symbol, start_time=start_time, requested_days=data_cache.requested_days, data_source=src, memory=memory, actual_days=data_cache.actual_days, single_strat=single_strat, agg=agg)
     log("Done")
     return analysed
 
 
-def get_starmap_strategies(data_cache, buy, sell, brange, srange, single_strat):
+def get_starmap_strategies(data_cache, buy, sell, brange, srange, single_strat, agg):
     log("generating starmap strategies")
     if single_strat:
-        return [[data_cache, buy, sell, brange, srange]]
+        return [[data_cache, buy, sell, brange, srange, agg]]
     strategies = [
-        (data_cache, b / 10, s / 10, br / 10, sr / 10)
+        (data_cache, b / 10, s / 10, br / 10, sr / 10, agg)
         for b in range(buy * (-10), buy * 10 + 1)
         for s in range(sell * (-10), sell * 10 + 1)
         for br in range(0, brange * 10 + 1)
@@ -94,10 +98,10 @@ def get_starmap_strategies(data_cache, buy, sell, brange, srange, single_strat):
     return strategies
 
 
-def get_strategies(buy, sell, brange, srange, single_strat):
+def get_strategies(buy, sell, brange, srange, single_strat, agg):
     log("generating strategies")
     if single_strat:
-        return np.array([[buy, sell, brange, srange]])
+        return np.array([[buy, sell, brange, srange, agg]])
     def get_index(buy, sell, brange, srange):
         return (20 * buy + 1) * (20 * sell + 1) * (brange * 10 + 1) * (srange * 10 + 1)
 
@@ -107,7 +111,7 @@ def get_strategies(buy, sell, brange, srange, single_strat):
         for s in range(sell * (-10), sell * 10 + 1):
             for br in range(0, brange * 10 + 1):
                 for sr in range(0, srange * 10 + 1):
-                    array[i] = np.array([b / 10, -(s / 10), br / 10, sr / 10, 0, 0, 0])
+                    array[i] = np.array([b / 10, -(s / 10), br / 10, sr / 10, agg, 0, 0])
                     i = i + 1
     log(f"number of strategies: {len(array)}")
     return array
@@ -131,11 +135,12 @@ def persist_results(
     max_sell,
     min_sell,
     actual_days,
-    single_strat
+    single_strat,
+    agg
 ):
     actual_days = format_datetime_list(actual_days)
     requested_days = format_datetime_list(requested_days)
-    info_str = f"for {symbol} highest profit {highest_profit} when buying at {highest_profit_b} and selling at {highest_profit_s} with {transactions} transactions and invested time {invested_time} in seconds and elapsed time {time.time() - start_time} to calculate and range buy {rbm} and range sell {rsm} with memory {memory} and number of requested days {len(requested_days)} and number of actual days {len(actual_days)} and max_buy {max_buy}, min_buy {min_buy}, max_sell {max_sell}, min_sell {min_sell}"
+    info_str = f"for {symbol} highest profit {highest_profit} when buying at {highest_profit_b} and selling at {highest_profit_s} with {transactions} transactions and invested time {invested_time} in seconds and elapsed time {time.time() - start_time} to calculate and range buy {rbm} and range sell {rsm} with memory {memory} and number of requested days {len(requested_days)} and number of actual days {len(actual_days)} and max_buy {max_buy}, min_buy {min_buy}, max_sell {max_sell}, min_sell {min_sell}, aggregate seconds {agg}"
     if single_strat:
         info_str = "Single strat "+info_str
     log(info_str)
@@ -162,6 +167,7 @@ def persist_results(
         "max_sell":max_sell,
         "min_sell":min_sell,
         "single_strat":str(single_strat),
+        "agg":agg
     }
     log(info)
 
@@ -194,7 +200,7 @@ def get_memory_usage():
     return psutil.virtual_memory()[3] / 1000000000
 
 
-def analyse_results(results, symbol, start_time, requested_days, data_source, memory, actual_days, single_strat):
+def analyse_results(results, symbol, start_time, requested_days, data_source, memory, actual_days, single_strat, agg):
     compiled = {}
     highest_profit = -100000
     highest_profit_b = highest_profit_s = transactions = invested_time = rbm = rsm = 0
@@ -251,7 +257,8 @@ def analyse_results(results, symbol, start_time, requested_days, data_source, me
         max_sell,
         min_sell,
         actual_days,
-        single_strat
+        single_strat,
+        agg
     )
     return(highest_profit, max_buy, min_buy, max_sell, min_sell)
     # gen_csv(compiled)
@@ -285,6 +292,7 @@ def run_single(
     sell_on_diff_percent,
     range_b,
     range_s,
+    agg
 ):
     data = cache.data
     strat_runner = Runner(data, 100000)
@@ -293,6 +301,7 @@ def run_single(
         buy_on_diff_percent + (range_b / 2),
         sell_on_diff_percent - (range_s / 2),
         sell_on_diff_percent + (range_s / 2),
+        agg
     )
     return np.array(
         [
