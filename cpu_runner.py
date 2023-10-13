@@ -35,18 +35,28 @@ class Runner:
         agg,
         delay_milis=5000,
     ):
-        previous_price = None
+        item_list=[]
         set_buy = None
         set_sell = None
         transaction_time = None
         aggregate = agg
         for item in self.data:
-            price = previous_price
+            item_list.append(item)
             time = item[0]
             price = item[1]
-
-            if previous_price is None:
-                previous_price = price
+            
+            old_items_index=None
+            for i in range(len(item_list)):
+                if i[0] + aggregate < item[0]:
+                    old_items_index = i
+                else:
+                    break
+            if old_items_index is not None:
+                if old_items_index+1 == len(item_list):
+                    #Keeps at least 1 object
+                    old_items_index = old_items_index - 1
+                item_list=item_list[old_items_index+1:]
+            previous_price = item_list[0][1]
             price_diff = ((price / previous_price) - 1) * 100
             if transaction_time is not None:
                 if time > transaction_time:
