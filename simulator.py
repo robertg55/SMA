@@ -45,7 +45,7 @@ def run_simulation(data_cache, src, symbol, days_group, start, end, include_part
     )
     single_days = group_by_day(data_cache)
     days_arr = sorted(list(single_days.keys()))
-    print(f"{days_arr}")
+    print(f"target days: {days_arr}")
     index = days_group
     evaluating_day=days_arr[index]
     print("simulation start")

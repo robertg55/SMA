@@ -37,6 +37,7 @@ class DataFetcher:
         skip_today = self.get_skip_today_value(include_partial_today, start_hour, end_hour)
         file_name = self.get_file_name(source, symbol, start_hour, end_hour, days, skip_today, tdelta)
         if os.path.isfile(file_name):
+            print("using cached data")
             with open(file_name, 'rb') as read_file:
                 self.data = pickle.load(read_file)
         else:
