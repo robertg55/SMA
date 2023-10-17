@@ -12,6 +12,8 @@ from decimal import Decimal
 import boto3
 from datetime import datetime
 import sys
+import pickle
+import os
 
 this = sys.modules[__name__]
 this.siltent_log = False
@@ -44,11 +46,15 @@ def main():
         "--tdelta", default=0, type=int, help="Number of days in the past from which to start pulling data"
     )
     parser.add_argument(
+        "--siltent", default=False, action="store_true", help="no logs"
+    )
+    parser.add_argument(
         "--agg", default=60, type=int, help="Number of seconds to aggregate"
     )
+    
     args = parser.parse_args()
     data_cache = DataFetcher()
-    run(data_cache, args.src, args.symbol, args.start, args.end, args.days, args.include_partial_today, args.cpu, args.buy, args.sell, args.brange, args.srange, args.single_strat, args.tdelta, args.agg)
+    run(data_cache, args.src, args.symbol, args.start, args.end, args.days, args.include_partial_today, args.cpu, args.buy, args.sell, args.brange, args.srange, args.single_strat, args.tdelta, args.siltent, None, args.agg)
 
 def run(data_cache, src, symbol, start, end, days, include_partial_today, cpu, buy, sell, brange, srange, single_strat, tdelta, set_siltent_log=False, pregenerated_strategies=None, agg=0):
     this.siltent_log = set_siltent_log
@@ -93,15 +99,23 @@ def get_starmap_strategies(data_cache, buy, sell, brange, srange, single_strat, 
         for br in range(0, brange * 10 + 1)
         for sr in range(0, srange * 10 + 1)
     ]
-    log(strategies)
     log(f"number of strategies: {len(strategies)}")
     return strategies
 
+def get_strat_file_name(buy, sell, brange, srange, single_strat, agg):
+    return os.path.join("cache", f"strat-{buy}-{sell}-{brange}-{srange}-{single_strat}-{agg}")
 
 def get_strategies(buy, sell, brange, srange, single_strat, agg):
     log("generating strategies")
     if single_strat:
         return np.array([[buy, sell, brange, srange, agg]])
+    
+    file_name = get_strat_file_name(buy, sell, brange, srange, single_strat, agg)
+    if os.path.isfile(file_name):
+        print("using cached strategies")
+        with open(file_name, 'rb') as read_file:
+            return pickle.load(read_file)
+    
     def get_index(buy, sell, brange, srange):
         return (20 * buy + 1) * (20 * sell + 1) * (brange * 10 + 1) * (srange * 10 + 1)
 
@@ -114,6 +128,8 @@ def get_strategies(buy, sell, brange, srange, single_strat, agg):
                     array[i] = np.array([b / 10, -(s / 10), br / 10, sr / 10, agg, 0, 0])
                     i = i + 1
     log(f"number of strategies: {len(array)}")
+    with open(file_name, 'wb') as write_file:
+        pickle.dump(array, write_file)
     return array
 
 
@@ -183,7 +199,7 @@ def persist_results(
     table.put_item(Item=info)
 
 def format_datetime_list(days):
-    if isinstance(days, int):
+    if isinstance(days, int) or days is None:
         return []
     new_list = []
     for day in days:

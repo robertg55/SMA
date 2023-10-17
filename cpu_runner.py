@@ -44,10 +44,10 @@ class Runner:
             item_list.append(item)
             time = item[0]
             price = item[1]
-            
+
             old_items_index=None
             for i in range(len(item_list)):
-                if i[0] + aggregate < item[0]:
+                if item_list[i][0] + aggregate < item[0]:
                     old_items_index = i
                 else:
                     break

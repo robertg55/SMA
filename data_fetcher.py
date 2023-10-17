@@ -10,14 +10,6 @@ class DataFetcher:
         self.actual_days = actual_days
         self.requested_days = requested_days
 
-    def get_file_name(self, source, symbol, start_hour, end_hour, days, skip_today, tdelta):
-        
-        days_arr = self.get_days_to_compute(days, skip_today, tdelta)
-        start=str(days_arr[0].date())
-        end=str(days_arr[-1].date())
-
-        return os.path.join("cache", f"{source}-{symbol}-{start}-{end}-{start_hour}-{end_hour}")
-
     def get_skip_today_value(self, include_partial_today, start_hour, end_hour):
         current_hour = datetime.now().hour
         skip_today = (
@@ -137,3 +129,11 @@ class DataFetcher:
         month = [old_date + timedelta(idx + 1) for idx in range(days_to_poll)]
         self.requested_days = [day for day in month if not skip_today or day.strftime("%Y-%m-%d") != datetime.now().strftime("%Y-%m-%d")]
         return self.requested_days
+
+    def get_file_name(self, source, symbol, start_hour, end_hour, days, skip_today, tdelta):
+        
+        days_arr = self.get_days_to_compute(days, skip_today, tdelta)
+        start=str(days_arr[0].date())
+        end=str(days_arr[-1].date())
+
+        return os.path.join("cache", f"{source}-{symbol}-{start}-{end}-{start_hour}-{end_hour}")

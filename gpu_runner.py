@@ -22,27 +22,23 @@ def run_strat(strategies, data):
     total_time_invested = 0
     delay_milis = 5000
 
-    item_list=[]
     set_buy = None
     set_sell = None
     transaction_time = None
+    old_items_index = 0
     for item in data:
-        item_list.append(item)
+        #item_list.append(item)
         time = item[0]
         price = item[1]
-        
-        old_items_index=None
-        for i in range(len(item_list)):
-            if i[0] + aggregate < item[0]:
+
+        for i in range(old_items_index, len(data)):
+            if data[i][0] + aggregate >= time:
                 old_items_index = i
-            else:
                 break
-        if old_items_index is not None:
-            if old_items_index+1 == len(item_list):
-                #Keeps at least 1 object
-                old_items_index = old_items_index - 1
-            item_list=item_list[old_items_index+1:]
-        previous_price = item_list[0][1]       
+        if old_items_index != 0 and time == data[old_items_index][0]:
+            # Keeps last data when passing between days except for index 0
+            old_items_index = old_items_index - 1
+        previous_price = data[old_items_index][1]       
 
         price_diff = ((price / previous_price) - 1) * 100
         if transaction_time is not None:

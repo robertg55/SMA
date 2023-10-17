@@ -27,9 +27,12 @@ def main():
     parser.add_argument(
         "--tdelta", default=0, type=int, help="Number of days in the past from which to start pulling data"
     )
+    parser.add_argument(
+        "--agg", default=60, type=int, help="Number of seconds to aggregate"
+    )
     args = parser.parse_args()
     data_cache = DataFetcher()
-    run(data_cache, args.src, args.symbol, args.start, args.end, args.days, args.include_partial_today, True, args.buy, args.sell, args.brange, args.srange, True, args.tdelta)
+    run(data_cache, args.src, args.symbol, args.start, args.end, args.days, args.include_partial_today, True, args.buy, args.sell, args.brange, args.srange, True, args.tdelta, False, None, args.agg)
     
 if __name__ == "__main__":
     main()
