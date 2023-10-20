@@ -46,7 +46,7 @@ def main():
         "--tdelta", default=0, type=int, help="Number of days in the past from which to start pulling data"
     )
     parser.add_argument(
-        "--siltent", default=False, action="store_true", help="no logs"
+        "--siltent", default=False, action="store_true", help="no stdout"
     )
     parser.add_argument(
         "--agg", default=60, type=int, help="Number of seconds to aggregate"

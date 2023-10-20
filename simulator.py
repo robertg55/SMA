@@ -49,10 +49,10 @@ def run_simulation(data_cache, src, symbol, days_group, start, end, include_part
     index = days_group
     evaluating_day=days_arr[index]
     print("simulation start")
-    strategies = get_strategies(buy, sell, brange, srange, False, agg)
     while(index < len(days_arr)):
         evaluating_day = days_arr[index]
         if evaluating_day in list(single_days.keys()):
+            strategies = get_strategies(buy, sell, brange, srange, False, agg)
             grouped_list = []
             for day in range(days_group):
                 grouped_list.extend(single_days.get(days_arr[index-1-day]))
