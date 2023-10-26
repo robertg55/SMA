@@ -188,7 +188,7 @@ def persist_results(
         "max_sell":max_sell,
         "min_sell":min_sell,
         "single_strat":str(single_strat),
-        "agg":agg
+        "agg":agg,
         "cpu":str(cpu),
     }
     log(info)

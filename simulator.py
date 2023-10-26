@@ -1,7 +1,7 @@
 import argparse
 from data_fetcher import DataFetcher
 from strats import run, get_strategies
-from datetime import datetime, timedelta
+from datetime import datetime
 
 def main():
     parser = argparse.ArgumentParser()
