@@ -83,7 +83,7 @@ def run(data_cache, src, symbol, start, end, days, include_partial_today, cpu, b
             strategies = get_strategies(buy, sell, brange, srange, single_strat, agg)
             memory = get_memory_usage()
         results, start_time = run_strats_gpu(strategies, data_cache)
-    analysed = analyse_results(results=results, symbol=symbol, start_time=start_time, requested_days=data_cache.requested_days, data_source=src, memory=memory, actual_days=data_cache.actual_days, single_strat=single_strat, agg=agg)
+    analysed = analyse_results(results=results, symbol=symbol, start_time=start_time, requested_days=data_cache.requested_days, data_source=src, memory=memory, actual_days=data_cache.actual_days, single_strat=single_strat, agg=agg, cpu=cpu)
     log("Done")
     return analysed
 
@@ -108,7 +108,7 @@ def get_strat_file_name(buy, sell, brange, srange, single_strat, agg):
 def get_strategies(buy, sell, brange, srange, single_strat, agg):
     log("generating strategies")
     if single_strat:
-        return np.array([[buy, sell, brange, srange, agg]])
+        return np.array([[buy, sell, brange, srange, agg, 0, 0]])
     
     file_name = get_strat_file_name(buy, sell, brange, srange, single_strat, agg)
     if os.path.isfile(file_name):
@@ -152,13 +152,18 @@ def persist_results(
     min_sell,
     actual_days,
     single_strat,
-    agg
+    agg,
+    cpu
 ):
     actual_days = format_datetime_list(actual_days)
     requested_days = format_datetime_list(requested_days)
     info_str = f"for {symbol} highest profit {highest_profit} when buying at {highest_profit_b} and selling at {highest_profit_s} with {transactions} transactions and invested time {invested_time} in seconds and elapsed time {time.time() - start_time} to calculate and range buy {rbm} and range sell {rsm} with memory {memory} and number of requested days {len(requested_days)} and number of actual days {len(actual_days)} and max_buy {max_buy}, min_buy {min_buy}, max_sell {max_sell}, min_sell {min_sell}, aggregate seconds {agg}"
     if single_strat:
         info_str = "Single strat "+info_str
+    if cpu:
+        info_str = info_str + " on cpu"
+    else:
+        info_str = info_str + " on gpu"
     log(info_str)
 
     info = {
@@ -184,6 +189,7 @@ def persist_results(
         "min_sell":min_sell,
         "single_strat":str(single_strat),
         "agg":agg
+        "cpu":str(cpu),
     }
     log(info)
 
@@ -216,7 +222,7 @@ def get_memory_usage():
     return psutil.virtual_memory()[3] / 1000000000
 
 
-def analyse_results(results, symbol, start_time, requested_days, data_source, memory, actual_days, single_strat, agg):
+def analyse_results(results, symbol, start_time, requested_days, data_source, memory, actual_days, single_strat, agg, cpu):
     compiled = {}
     highest_profit = -100000
     highest_profit_b = highest_profit_s = transactions = invested_time = rbm = rsm = 0
@@ -274,7 +280,8 @@ def analyse_results(results, symbol, start_time, requested_days, data_source, me
         min_sell,
         actual_days,
         single_strat,
-        agg
+        agg,
+        cpu
     )
     return(highest_profit, max_buy, min_buy, max_sell, min_sell)
     # gen_csv(compiled)

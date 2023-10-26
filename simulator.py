@@ -65,7 +65,7 @@ def run_simulation(data_cache, src, symbol, days_group, start, end, include_part
             sr = max_sell-min_sell
             single_data_cache = DataFetcher(single_days.get(evaluating_day), 1, 1)
             eval_highest_profit, _, _, _, _ = run(single_data_cache, src, symbol, start, end, 1, include_partial_today, True, b, s, br, sr, True, 0, True, None, agg)
-            info_str = f"{datetime.now()}: simulation {eval_highest_profit} with buy {b}, sell {s}, brange {br}, srange {sr}"
+            info_str = f"{datetime.now()}: simulation {eval_highest_profit} with buy {b}, sell {s}, brange {br}, srange {sr} date {evaluating_day}"
             print(info_str)
             with open(f"log.txt", "a") as file:
                 file.write(f"{info_str}\n")

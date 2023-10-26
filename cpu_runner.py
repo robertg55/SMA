@@ -52,7 +52,7 @@ class Runner:
                 else:
                     break
             if old_items_index is not None:
-                if old_items_index+1 == len(item_list):
+                if old_items_index+2 == len(item_list):
                     #Keeps at least 1 object
                     old_items_index = old_items_index - 1
                 item_list=item_list[old_items_index+1:]
