@@ -40,7 +40,7 @@ def run_simulation(data_cache, src, symbol, days_group, start, end, include_part
         symbol,
         start,
         end,
-        100,
+        365,
         include_partial_today,
     )
     single_days = group_by_day(data_cache)
@@ -48,7 +48,7 @@ def run_simulation(data_cache, src, symbol, days_group, start, end, include_part
     print(f"target days: {days_arr}")
     index = days_group
     evaluating_day=days_arr[index]
-    print("simulation start")
+    log_to_file("simulation start")
     while(index < len(days_arr)):
         evaluating_day = days_arr[index]
         if evaluating_day in list(single_days.keys()):
@@ -66,9 +66,8 @@ def run_simulation(data_cache, src, symbol, days_group, start, end, include_part
             single_data_cache = DataFetcher(single_days.get(evaluating_day), 1, 1)
             eval_highest_profit, _, _, _, _ = run(single_data_cache, src, symbol, start, end, 1, include_partial_today, True, b, s, br, sr, True, 0, True, None, agg)
             info_str = f"{datetime.now()}: simulation {eval_highest_profit} with buy {b}, sell {s}, brange {br}, srange {sr} date {evaluating_day}"
-            print(info_str)
-            with open(f"log.txt", "a") as file:
-                file.write(f"{info_str}\n")
+            log_to_file(info_str)
+            
         
         index = index + 1
     print("simulation done")
@@ -81,6 +80,10 @@ def group_by_day(data_cache):
         date_list.append(item)
     return dates_dict
         
+def log_to_file(string):
+    print(string)
+    with open(f"log.txt", "a") as file:
+        file.write(f"{string}\n")
 
 if __name__ == "__main__":
     main()

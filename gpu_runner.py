@@ -26,6 +26,7 @@ def run_strat(strategies, data):
     set_sell = None
     transaction_time = None
     old_items_index = 0
+    time=0
     for item in data:
         #item_list.append(item)
         time = item[0]
